@@ -18,6 +18,10 @@ SIGFOX_BANDWIDTH = 100
 # Minimal duration (seconds) of Sigfox transmission
 SIGFOX_MINIMAL_DURATION = 0.8
 
+# Some preamble symbols (F.SYNC) that are used for frame synchronization
+# Since Sigfox uses DBPSK, this corresponds to data bits "1010 1010"
+SIGFOX_PREAMBLE_SYMBOLS = [1, 1, -1, -1, 1, 1, -1, -1, 1]
+
 class ComplexSignal:
 	def __init__(self, signal, sampleRate):
 		self.signal = signal
@@ -160,7 +164,6 @@ class Intermediate(ComplexSignal):
 			sigFreq = f[np.argmax(powerSpectrum)]
 
 			# Step 2: Find more precise start sample by analyzing signal power at specific frequency over time
-			# Decimate to 10x the sigfox symbol frequency, that should be enough
 			baseband = self.mix(sigFreq).lpf(SIGFOX_BANDWIDTH)
 
 			# Calculate average power of the noise floor assuming noise floor is below average power
@@ -177,12 +180,16 @@ class Intermediate(ComplexSignal):
 			# noiseFloorPower and transmissionPower (arbitrarily defined)
 			for startIndex in range(len(power.signal)):
 				if power.signal[startIndex] > (noiseFloorPower + transmissionPower) / 2:
-					bursts.append({ "baseband" : baseband, "frequency" : sigFreq, "start" : startIndex })
 					break
 
-		return bursts
+			# Step 3: Detect beginning of sigfox preamble in baseband signal around startIndex
+			# Search for valid preamble in a search area of up to 6 symbols before / after given startIndex
+			searchArea = int(6 * baseband.sampleRate / SIGFOX_BAUDRATE)
+			preambleOffset = locatePreamble(baseband.signal, baseband.sampleRate, SIGFOX_PREAMBLE_SYMBOLS, SIGFOX_BAUDRATE, startIndex, searchArea)
 
-	# TODO: Once the preamble is successfully reverse engineered, use that to synchronize symbol sampling points
+			bursts.append({ "baseband" : baseband, "frequency" : sigFreq, "start" : preambleOffset })
+
+		return bursts
 
 	def decodeSigfoxBursts(self, minimalSNR):
 		bursts = self.locateSigfoxBursts(minimalSNR)
