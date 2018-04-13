@@ -5,4 +5,4 @@ import sys
 import FoxSignal
 
 sig = FoxSignal.Intermediate(sys.argv[1])
-bursts = sig.findSigfoxBursts(0.1, 30, 8)
+bursts = sig.decodeSigfoxBursts(8)
