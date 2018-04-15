@@ -209,10 +209,15 @@ class Intermediate(ComplexSignal):
 				symbols.append(last_symbol)
 				differentials.append(np.conj(last_symbol) * this_symbol)
 
-			#plt.scatter(np.real(differentials), np.imag(differentials))
-			#plt.show()
+			plt.scatter(np.real(differentials), np.imag(differentials))
+			plt.show()
 
 			for d in differentials:
-				sys.stdout.write("0" if d.real < 0 else "1")
+				# TODO: Use frame type information to determine length, don't just stop decoding
+				# (printing 'x') if signal power is too low
+				if abs(d) < 0.05 * max(np.abs(differentials)):
+					sys.stdout.write("x")
+				else:
+					sys.stdout.write("0" if d.real < 0 else "1")
 				sys.stdout.flush()
 			print()
