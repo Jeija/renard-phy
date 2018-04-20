@@ -9,8 +9,10 @@ import sys
 ###########################
 #       Definitions       #
 ###########################
+FILENAME = sys.argv[1]
+
 # Instantaneous Signal Frequency Estimation
-MIN_FREQ_RES = 1
+MIN_FREQ_RES = 10
 TIME_PER_SEGMENT = 0.5
 
 # Downmixing and filtering
@@ -45,7 +47,7 @@ def nextpow2(limit):
 # Proportion by which the "VCO" phase will be adjusted from given phase offset estimate in
 # "share of phase offset corrected per second"
 class CostasLoop(object):
-	def __init__(self, sampleRate, frequencyAdjustmentFactor = 1e4, phaseAdjustmentFactor = 1000, instFreqInit = 0):
+	def __init__(self, sampleRate, frequencyAdjustmentFactor = 1e6, phaseAdjustmentFactor = 1000, instFreqInit = 0):
 		# instAngFreq is the angular frequency, not the physical one
 		self.instAngFreq = 2 * np.pi * instFreqInit
 		self.sampleRate = sampleRate
@@ -74,7 +76,7 @@ class CostasLoop(object):
 ###########################
 #     Recording Input     #
 ###########################
-[Fs, IQ] = scipy.io.wavfile.read(sys.argv[1])
+[Fs, IQ] = scipy.io.wavfile.read(FILENAME)
 
 # IQ offset / imbalance correction
 I_nooffset = IQ[:, 0] - sum(IQ[:, 0]) / len(IQ[:, 0])
@@ -115,10 +117,12 @@ signal /= np.mean(abs(signal))
 
 # Get very approximate frequency estimation
 # Costas loop takes care of locking onto actual frequency
-nfft = nextpow2(len(signal))
+nfft = nextpow2(Fs / MIN_FREQ_RES)
 print("Estimating frequency using " + str(nfft) + "-length FFT")
-spec = np.fft.fft(signal, n = nfft)
-sigFreq = np.fft.fftfreq(nfft, 1 / Fs)[np.argmax(spec)]
+f, spec = scipy.signal.welch(signal, Fs, noverlap = 0, nperseg = nfft / 4, nfft = nfft, return_onesided = False)
+sigFreq = f[np.argmax(spec)]
+#spec = np.fft.fft(signal, n = nfft)
+#sigFreq = np.fft.fftfreq(nfft, 1 / Fs)[np.argmax(spec)]
 print("Signal Frequency: " + "{0:.2f}".format(sigFreq) + " Hz")
 
 ###########################
@@ -132,7 +136,7 @@ print("Signal Frequency: " + "{0:.2f}".format(sigFreq) + " Hz")
 #lpf_b, lpf_a = scipy.signal.butter(4, LPF_FREQ / Fs)
 #baseband = scipy.signal.lfilter(lpf_b, lpf_a, baseband_all)
 
-pll = CostasLoop(Fs, instFreqInit = 2600)
+pll = CostasLoop(Fs, instFreqInit = sigFreq)
 baseband = []
 mixer = []
 for i in range(len(signal)):
@@ -141,8 +145,8 @@ for i in range(len(signal)):
 
 #plt.plot(range(len(signal)), np.real(signal))
 #plt.plot(range(len(mixer)), np.real(mixer))
-plt.plot(range(len(baseband)), np.real(baseband))
-plt.show()
+#plt.plot(range(len(baseband)), np.real(baseband))
+#plt.show()
 
 ############################
 #    Preamble detection    #
@@ -181,8 +185,8 @@ for offset in range(0, len(discreteBaseband) - int(len(SIGFOX_PREAMBLE_SYMBOLS) 
 
 	xcorr.append(correlation)
 
-plt.plot(np.arange(len(xcorr)), xcorr)
-plt.show()
+#plt.plot(np.arange(len(xcorr)), xcorr)
+#plt.show()
 
 # Correlation has to be at least len(SIGFOX_PREAMBLE_SYMBOLS) to be valid
 # Find all non-coherent sections that signify the preamble
@@ -214,7 +218,8 @@ for sample in range(len(possiblePreamblePos)):
 print("Found " + str(len(startOffsets)) + " preambles")
 
 
-for startOffset in startOffsets:
+dataOutFile = open(FILENAME + ".txt", "w") 
+for count, startOffset in enumerate(startOffsets):
 	startOffsetSample = int(round(startOffset["offset"])) * XCORR_PREAMBLE_PRECISION
 
 	# Calculate all symbols / differentials in audio file
@@ -242,4 +247,8 @@ for startOffset in startOffsets:
 		else:
 			dataString += "x"
 
-	print(dataString.split("x", 1)[0])
+	dataString = dataString.split("x", 1)[0]
+	dataOutFile.write(dataString + "\n")
+	print(dataString)
+
+dataOutFile.close()
