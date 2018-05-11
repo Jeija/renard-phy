@@ -78,6 +78,12 @@ preamble = [s for s in DOWNLINK_PREAMBLE for _ in range(int(DEMOD_SAMPRATE / DOW
 xcorr = scipy.signal.correlate(demod, preamble, mode="valid")
 preamble_offset = np.argmax(xcorr)
 
+############################
+#   DC Offset Correction   #
+############################
+# Estimate DC offset by calculating mean value of signal during preamble
+demod = demod - np.mean(demod[preamble_offset:preamble_offset + len(preamble)])
+
 plt.plot(demod)
 plt.plot([0] * preamble_offset + preamble)
 plt.show()
