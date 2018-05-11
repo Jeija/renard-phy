@@ -1,4 +1,9 @@
 *
 !.gitignore
 !README.md
-!*.py
+!uplink
+uplink/*
+!uplink/*.py
+!downlink
+downlink/*
+!downlink/*.py
