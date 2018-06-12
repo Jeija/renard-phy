@@ -14,7 +14,7 @@ FILENAME = sys.argv[1]
 DOWNLINK_BAUDRATE = 600
 MIN_FREQ_RES = 10
 LPF_FREQ = 4000
-DOWNLINK_PREAMBLE = [-1] + [-1, 1] * 45 + [1, -1, -1]
+DOWNLINK_PREAMBLE = [-1] + [-1, 1] * 45 + [1, -1, -1, 1, -1, -1, -1, 1, -1, -1, 1, 1, 1]
 
 # Demodulated signal is upsampled to this sample rate to allow for better preamble detection
 DEMOD_SAMPRATE = 300000
@@ -85,7 +85,7 @@ preamble_offset = np.argmax(xcorr)
 demod = demod - np.mean(demod[preamble_offset:preamble_offset + len(preamble)])
 
 plt.plot(demod)
-plt.plot([0] * preamble_offset + preamble)
+plt.plot([0] * preamble_offset + preamble)# + ([1] * int(DEMOD_SAMPRATE / DOWNLINK_BAUDRATE) + [-1] * int(DEMOD_SAMPRATE / DOWNLINK_BAUDRATE)) * 60)
 plt.show()
 
 ############################
@@ -94,12 +94,13 @@ plt.show()
 samples_per_symbol = DEMOD_SAMPRATE / DOWNLINK_BAUDRATE
 
 bits = []
-for i in np.arange(preamble_offset + samples_per_symbol / 2, len(demod), samples_per_symbol):
+for i in (int(preamble_offset + samples_per_symbol / 2) + np.arange(0, samples_per_symbol * (len(DOWNLINK_PREAMBLE) + 120), samples_per_symbol)):
 	if demod[int(i)] < 0:
 		bits = bits + [0]
 	else:
 		bits = bits + [1]
 
-print("".join([str(b) for b in bits]))
-
-
+bitstring = "".join([str(b) for b in bits])
+print(bitstring)
+hexstring = str(hex(int(bitstring, 2)))
+print("Payload: " + hexstring[int(2 + len(DOWNLINK_PREAMBLE) / 4):])
