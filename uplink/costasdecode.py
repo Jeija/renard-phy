@@ -250,5 +250,7 @@ for count, startOffset in enumerate(startOffsets):
 	dataString = dataString.split("x", 1)[0]
 	dataOutFile.write(dataString + "\n")
 	print(dataString)
+	hexstring = str(hex(int(dataString, 2)))
+	print("Payload: " + hexstring[8:])
 
 dataOutFile.close()
