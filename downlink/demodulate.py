@@ -93,7 +93,8 @@ demod = [demod[int(i * Fs / DEMOD_SAMPRATE)] for i in range(int(len(demod) * DEM
 #       Find Preamble      #
 ############################
 print("Finding preamble...")
-preamble = [s for s in DOWNLINK_PREAMBLE for _ in range(int(DEMOD_SAMPRATE / DOWNLINK_BAUDRATE))]
+samples_per_symbol = DEMOD_SAMPRATE / DOWNLINK_BAUDRATE
+preamble = [s for s in DOWNLINK_PREAMBLE for _ in range(int(samples_per_symbol))]
 xcorr = scipy.signal.correlate(demod, preamble, mode="valid")
 preamble_offset = np.argmax(xcorr)
 
@@ -109,13 +110,12 @@ demod = demod - np.mean(demod[preamble_offset:preamble_offset + len(preamble)])
 if args.plot:
 	import matplotlib.pyplot as plt
 	plt.plot(demod)
-	plt.plot([0] * preamble_offset + preamble)
+	plt.plot(preamble_offset + range(len(preamble)), preamble)
 	plt.show()
 
 ############################
 #       Turn into Bits     #
 ############################
-samples_per_symbol = DEMOD_SAMPRATE / DOWNLINK_BAUDRATE
 first_sample_offset = int(preamble_offset + samples_per_symbol / 2)
 
 bits = ""
