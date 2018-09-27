@@ -17,6 +17,7 @@ args = parser.parse_args()
 ###########################
 #       Definitions       #
 ###########################
+# TODO: document config
 MIN_FREQ_RES = 10
 
 # Downmixing and filtering
@@ -36,8 +37,20 @@ UPLINK_BAUDRATE = 100
 # Precision by which the preamble will be located (in signal samples)
 XCORR_PREAMBLE_PRECISION = 10
 
+FTYPE_LEN_BITS = 12
+CRCLEN_BITS = 16
+
+PACKETLEN_BY_FTYPE = {
+	0x06b :  8, 0x6e0 :  8, 0x034 :  8, # class A
+	0x08d :  9, 0x0d2 :  9, 0x302 :  9, # class B
+	0x35f : 12, 0x598 : 12, 0x5a3 : 12, # class C
+	0x611 : 16, 0x6bf : 16, 0x72c : 16, # class D
+	0x94c : 20, 0x971 : 20, 0x997 : 20, # class E
+	0xf67 : 16                          # OOB
+}
+
 ###########################
-#    Utility functions    #
+#    Utility Functions    #
 ###########################
 def nextpow2(limit):
 	n = 1
@@ -123,7 +136,7 @@ print("Normalizing...")
 baseband /= np.mean(abs(baseband))
 
 ############################
-#    Preamble detection    #
+#    Preamble Detection    #
 ############################
 print("Finding Preamble(s)...")
 samples_per_symbol = Fs / UPLINK_BAUDRATE
@@ -157,38 +170,40 @@ if args.plot:
 
 print("Found " + str(len(preamble_offsets)) + " Preambles!")
 
+###########################
+#    Sample and Output    #
+###########################
+def hammingDistance(str1, str2):
+	return sum([1 if str1[i] == str2[i] else 0 for i in range(len(str1))])
+
 for count, preamble_offset in enumerate(preamble_offsets):
 	data_offset = int(preamble_offset + SILENCE_BEFORE_PREAMBLE * Fs)
 
-	# Calculate all symbols / differentials in audio file
-	# Display scatter plot of differentials at bestoffset
-	differentials = []
-	samplingInstants = np.arange(data_offset + 3 * samples_per_symbol / 2, len(baseband), int(round(samples_per_symbol)))
+	# calculate all symbol differentials in baseband starting from frame offsets
+	bitstring = ""
+	samplingInstants = np.arange(data_offset + 3 / 2 * samples_per_symbol, len(baseband), int(round(samples_per_symbol)))
 	for j in samplingInstants:
 		last_symbol = baseband[int(round(j - samples_per_symbol))]
 		this_symbol = baseband[int(round(j))]
-		differentials.append(np.conj(last_symbol) * this_symbol)
+		differential = np.conj(last_symbol) * this_symbol
+		bitstring += "0" if differential < 0 else "1"
 
-	import matplotlib.pyplot as plt
-	plt.plot(np.real(baseband))
-	plt.plot(samplingInstants, np.real(baseband)[samplingInstants.astype(int)], "x")
-	plt.show()
+	# determine packet length: find frame type with smallest hamming distance
+	print("[Frame " + str(count) + "]: Determining Frame Type...")
+	ftype = bitstring[len(UPLINK_PREAMBLE) - 1:len(UPLINK_PREAMBLE) + FTYPE_LEN_BITS - 1]
 
-	avgPower = np.mean(np.abs(differentials))
+	min_hammdist = FTYPE_LEN_BITS
+	min_hammdist_ftype = 0
+	for candidate in PACKETLEN_BY_FTYPE:
+		if hammingDistance("{:012b}".format(candidate), ftype) < min_hammdist:
+			min_hammdist_ftype = ftype
 
-	# Output decoded data
-	bitstring = ""
-	for d in differentials:
-		if d.real < -avgPower / 2:
-			bitstring += "0"
-		elif d.real > avgPower / 2:
-			bitstring += "1"
-		else:
-			bitstring += "x"
+	best_ftype = int(min_hammdist_ftype, 2)
+	packetlen = PACKETLEN_BY_FTYPE[best_ftype]
+	print("[Frame " + str(count) + "]: Frame Type is 0x{:03x}".format(best_ftype) + ", Packet Length " + str(packetlen) + " bits")
 
-	bitstring = bitstring.split("x", 1)[0]
-	print("Frame " + str(count) + ": " + bitstring)
-
-	# TODO: Use frame type to determine length of uplink
-	hexstring = str(hex(int(bitstring[1:int((len(bitstring) - 1) / 4) * 4 + 1], 2)))
-	print("Payload: " + hexstring[7:])
+	# extract frame bits and display corresponding hexadecimal representation
+	frame_without_preamble = bitstring[(len(UPLINK_PREAMBLE) - 1):(len(UPLINK_PREAMBLE) + FTYPE_LEN_BITS + packetlen * 8 + CRCLEN_BITS - 1)]
+	nibblecount = int((FTYPE_LEN_BITS + packetlen * 8 + CRCLEN_BITS) / 4)
+	hexstring = ("{:0" + str(nibblecount) + "x}").format(int(frame_without_preamble, 2))
+	print("[Frame " + str(count) + "]: Content: "  + hexstring)
