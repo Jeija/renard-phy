@@ -1,0 +1,3 @@
+[submodule "renard"]
+	path = renard
+	url = https://github.com/Jeija/renard
