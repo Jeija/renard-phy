@@ -7,3 +7,4 @@ uplink/*
 !downlink
 downlink/*
 !downlink/*.py
+!logo.svg
