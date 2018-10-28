@@ -2,8 +2,10 @@
 
 import scipy, scipy.signal, scipy.io, scipy.io.wavfile
 import numpy as np
+import subprocess
 import argparse
 import sys
+import os
 
 ###########################
 #    Parse CLI argumets   #
@@ -48,6 +50,10 @@ PACKETLEN_BY_FTYPE = {
 	0x94c : 20, 0x971 : 20, 0x997 : 20, # class E
 	0xf67 : 16                          # OOB
 }
+
+# If CLI option is specified, use renard to decode uplink frame
+RENARD_BIN = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "renard", "build", "renard")
+RENARD_CMD = [RENARD_BIN] + ["uldecode"]
 
 ###########################
 #    Utility Functions    #
@@ -158,8 +164,8 @@ xcorr_pwr = scipy.signal.correlate(baseband_pwr, preamble_pwr, mode="valid")
 xcorr = xcorr_abs + xcorr_pwr
 xcorrmax = np.max(xcorr)
 
-# TODO: fix this somehow, make configurable
-preamble_offsets, _ = scipy.signal.find_peaks(xcorr, distance = samples_per_symbol * 10, height = 0.8 * xcorrmax, prominence = 0.5 * xcorrmax)
+# TODO: make configurable somehow
+preamble_offsets, _ = scipy.signal.find_peaks(xcorr, distance = samples_per_symbol * 10, height = 0.5 * xcorrmax, prominence = 0.5 * xcorrmax)
 
 if args.plot:
 	import matplotlib.pyplot as plt
@@ -207,3 +213,11 @@ for count, preamble_offset in enumerate(preamble_offsets):
 	nibblecount = int((FTYPE_LEN_BITS + packetlen * 8 + CRCLEN_BITS) / 4)
 	hexstring = ("{:0" + str(nibblecount) + "x}").format(int(frame_without_preamble, 2))
 	print("[Frame " + str(count) + "]: Content: "  + hexstring)
+	print("[Frame " + str(count) + "]: Decoding with renard:")
+	if args.decode:
+		try:
+			print(subprocess.check_output(RENARD_CMD + ["-f", hexstring], stderr = subprocess.STDOUT).decode('utf-8'))
+		except subprocess.CalledProcessError as e:
+			print(RENARD_BIN + " subprocess failed. Error:")
+			print(e.output.decode("UTF-8"))
+			sys.exit(0)

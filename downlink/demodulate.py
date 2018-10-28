@@ -3,8 +3,10 @@
 
 import scipy, scipy.signal, scipy.io, scipy.io.wavfile
 import numpy as np
+import subprocess
 import argparse
 import sys
+import os
 
 ###########################
 #    Parse CLI argumets   #
@@ -38,6 +40,10 @@ FRAMELENGTH_WITHOUT_PREAMBLE = 120
 
 # Total length of Sigfox downlink frame, including preamble
 FRAMELENGTH = FRAMELENGTH_WITHOUT_PREAMBLE + len(DOWNLINK_PREAMBLE)
+
+# If CLI option is specified, use renard to downlink uplink frame
+RENARD_BIN = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "renard", "build", "renard")
+RENARD_CMD = [RENARD_BIN] + ["dldecode"]
 
 ###########################
 #    Utility Functions    #
@@ -123,4 +129,12 @@ for i in (np.arange(0, FRAMELENGTH) * samples_per_symbol + first_sample_offset):
 	bits = bits + ("0" if demod[int(i)] < 0 else "1")
 
 hexstring = str(hex(int(bits, 2)))
-print("Frame: " + hexstring[int(2 + len(DOWNLINK_PREAMBLE) / 4):])
+hexstring_without_preamble = hexstring[int(2 + len(DOWNLINK_PREAMBLE) / 4):]
+print("Frame: " + hexstring_without_preamble)
+if args.decode:
+	try:
+		print(subprocess.check_output(RENARD_CMD + ["-f", hexstring_without_preamble, "-c"], stderr = subprocess.STDOUT).decode('utf-8'))
+	except subprocess.CalledProcessError as e:
+		print(RENARD_BIN + " subprocess failed. Error:")
+		print(e.output.decode("UTF-8"))
+		sys.exit(0)

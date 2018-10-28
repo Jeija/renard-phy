@@ -29,7 +29,7 @@ UPLINK_FREQ = int(sys.argv[1])
 HRF_CARRIER_FREQ = UPLINK_FREQ + 1395000
 
 # Use renard to obtain a hexadecimal representation of the sigfox frames to send
-# Always run renard in frame-building mode (-b)
+# Always run renard in frame-building mode (dlencode)
 RENARD_BIN = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "renard", "build", "renard")
 RENARD_CMD = [RENARD_BIN] + ["dlencode"] + sys.argv[2:]
 

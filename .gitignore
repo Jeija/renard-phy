@@ -8,3 +8,4 @@ uplink/*
 downlink/*
 !downlink/*.py
 !logo.svg
+!*screenshot.png

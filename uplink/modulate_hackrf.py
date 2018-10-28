@@ -28,7 +28,7 @@ HRFTRANS_CMD = "/usr/bin/hackrf_transfer"
 HRF_CARRIER_FREQ = "868125700"
 
 # Use renard to obtain a hexadecimal representation of the sigfox frames to send
-# Always run renard in frame-building mode (-b)
+# Always run renard in frame-building mode (ulencode)
 RENARD_BIN = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "renard", "build", "renard")
 RENARD_CMD = [RENARD_BIN] + ["ulencode"] + sys.argv[1:]
 
