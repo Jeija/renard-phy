@@ -2,8 +2,8 @@
 
 <img src="logo.svg" align="right" width="20%"/>
 
-`renard-phy` is an open source physical layer implementation of the Sigfox protocol's uplink and downlink in for use with software defined radios (SDRs).
-It supports demodulating received Sigfox uplinks and downlinks recorded as WAV files (e.g. with [gqrx](http://gqrx.dk/)) with any SDR hardware that supports Sigfox's frequency range.
+`renard-phy` is an open source physical layer implementation of the Sigfox protocol's uplink and downlink in the C programming language for use with software defined radios (SDRs).
+It supports demodulating received Sigfox uplinks and downlinks recorded as WAV files (e.g. with [gqrx](http://gqrx.dk/) and any SDR hardware that supports Sigfox's frequency range).
 Modulating uplink and downlink frames is supported for the [*HackRF One*](https://greatscottgadgets.com/hackrf/) SDR.
 
 `renard-phy` is built on top of [`renard`](https://github.com/Jeija/renard), the CLI interface to the open source Sigfox protocol library [`librenard`](https://github.com/Jeija/librenard).
