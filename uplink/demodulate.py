@@ -213,8 +213,8 @@ for count, preamble_offset in enumerate(preamble_offsets):
 	nibblecount = int((FTYPE_LEN_BITS + packetlen * 8 + CRCLEN_BITS) / 4)
 	hexstring = ("{:0" + str(nibblecount) + "x}").format(int(frame_without_preamble, 2))
 	print("[Frame " + str(count) + "]: Content: "  + hexstring)
-	print("[Frame " + str(count) + "]: Decoding with renard:")
 	if args.decode:
+		print("[Frame " + str(count) + "]: Decoding with renard:")
 		try:
 			print(subprocess.check_output(RENARD_CMD + ["-f", hexstring], stderr = subprocess.STDOUT).decode('utf-8'))
 		except subprocess.CalledProcessError as e:
