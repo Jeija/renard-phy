@@ -206,7 +206,7 @@ for count, preamble_offset in enumerate(preamble_offsets):
 
 	best_ftype = int(min_hammdist_ftype, 2)
 	packetlen = PACKETLEN_BY_FTYPE[best_ftype]
-	print("[Frame " + str(count) + "]: Frame Type is 0x{:03x}".format(best_ftype) + ", Packet Length " + str(packetlen) + " bits")
+	print("[Frame " + str(count) + "]: Frame Type is 0x{:03x}".format(best_ftype) + ", Packet Length " + str(packetlen) + " bytes")
 
 	# extract frame bits and display corresponding hexadecimal representation
 	frame_without_preamble = bitstring[(len(UPLINK_PREAMBLE) - 1):(len(UPLINK_PREAMBLE) + FTYPE_LEN_BITS + packetlen * 8 + CRCLEN_BITS - 1)]
