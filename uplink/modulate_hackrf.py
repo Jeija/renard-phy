@@ -3,7 +3,6 @@
 # Usage: modulate_hackrf.py [RENARD CLI ARGS]
 # All command line arguments to modulate_hackrf.py will just be forwarded to "renard ulencode".
 
-import matplotlib.pyplot as plt
 import scipy.signal
 import numpy as np
 import subprocess

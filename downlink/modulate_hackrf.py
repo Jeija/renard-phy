@@ -4,7 +4,6 @@
 #   This frequency is used to calculate the downlink frequency by adding a constant of 1.395 MHz.
 # * All additional arguments are simply passed on to renard.
 
-import matplotlib.pyplot as plt
 import scipy.signal
 import numpy as np
 import subprocess
