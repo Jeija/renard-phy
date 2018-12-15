@@ -96,6 +96,16 @@ The content (payload / device ID / SN / ...) of the transmitted frames is genera
 $ ./uplink/modulate_hackrf.py -p abad1dea -s 1a0 -i 004d33db -k 479e4480fd7596d45b0122fd282db3cf
 ```
 
+* You can also transmit uplinks with arbitrary frame contents using `./uplink/modulate_hackrf_hex.py` by providing the binary frame content as hexadecimal string:
+```
+$ ./uplink/modulate_hackrf_hex.py aaaaa35f0001db334d00deadbeef68a60055
+```
+
+* You can even transmit multiple uplinks at different frequencies at the same time (frequency multiplexing) by providing all their hexadecimal frame contents to `./uplink/modulate_hackrf_hex_multiplex.py`. The script will output a command that can be used to transmit the generated *HackRF One* sample file:
+```
+$ ./uplink/modulate_hackrf_hex_multiplex.py aaaaa35f0001db334d00deadbeef68a60055 aaaaa35f0002db334d00abad1dea7c74c0e0
+```
+
 #### Downlink
 * Transmit downlink with payload `0xdeadbeef02468ace`. The first parameter to `./downlink/modulate_hackrf.py` is the frequency of the *uplink that requested the downlink* in Hz. This value is used to calculate the appropriate downlink frequency that the frame is transmitted at. All further command line options are simply forwareded to `renard dlencode`.
 ```
