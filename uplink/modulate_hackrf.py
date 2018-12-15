@@ -13,12 +13,6 @@ import os
 
 SAMPLERATE = 2000000
 BAUDRATE = 100
-
-GAUSSFILT_SIZE = 0.9
-GAUSSFILT_SIGMA = 0.0014 * SAMPLERATE
-
-IF_CARRIER_FREQ = 4000
-
 PAUSE_DURATION = 0.5
 
 OUTFILE = "/tmp/hackrf_transmission.raw"
@@ -62,7 +56,6 @@ for hexstring in FRAMES_HEX:
 		baseband = baseband + [1 if phase else -1]
 		phase = phase if bit == "1" else not phase
 
-	# mix baseband signal with intermediate carrier frequency
 	total_signal.extend(baseband)
 
 	# add pause after the transmission
