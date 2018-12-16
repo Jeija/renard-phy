@@ -37,6 +37,8 @@ for bit in binstring:
 	baseband = baseband + [1 if phase else -1]
 	phase = phase if bit == "1" else not phase
 
+baseband.extend([0] * int(0.5 * BAUDRATE))
+
 # write complete signal to hackrf RAW I/Q file:
 # * Repeat bits int(SAMPLERATE / BAUDRATE) times to achieve sample rate
 # * Hack: Set I and Q to always be the same value by multiplying by "2"

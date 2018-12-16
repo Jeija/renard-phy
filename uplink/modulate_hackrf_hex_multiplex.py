@@ -12,7 +12,7 @@ import os
 
 SAMPLERATE = 2000000
 BAUDRATE = 100
-MPX_FREQ_OFFSET = 10000
+MPX_FREQ_OFFSET = 50000
 
 OUTFILE = "/tmp/hackrf_transmission_REPLACE.raw"
 
@@ -56,6 +56,8 @@ for arg in range(len(inputs)):
 
 		# differential modulation: 180° phase shift if "1"
 		phase = phase if binstring[bit] == "1" else -phase
+
+np.append(baseband, np.zeros(int(0.5 * BAUDRATE)))
 
 # write complete signal to hackrf RAW I/Q file
 print("Quantizing...")
