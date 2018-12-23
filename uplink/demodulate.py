@@ -205,6 +205,12 @@ for count, preamble_offset in enumerate(preamble_offsets):
 			min_hammdist_ftype = ftype
 
 	best_ftype = int(min_hammdist_ftype, 2)
+
+	if not best_ftype in PACKETLEN_BY_FTYPE:
+		print("[Frame " + str(count) + "]: Frame type 0x{:03x} not found, ignoring".format(int(ftype, 2)))
+		print("[Frame " + str(count) + "]: Raw bitstring is " + bitstring)
+		continue
+
 	packetlen = PACKETLEN_BY_FTYPE[best_ftype]
 	print("[Frame " + str(count) + "]: Frame Type is 0x{:03x}".format(best_ftype) + ", Packet Length " + str(packetlen) + " bytes")
 
