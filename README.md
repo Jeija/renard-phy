@@ -21,7 +21,7 @@ cd renard
 make
 cd ..
 ```
-* Install `renard-phy`'s dependencies: [NumPy](https://www.numpy.org/), [SciPy](https://www.scipy.org/) and [matplotlib](https://matplotlib.org/). If you wish to transmit frames with the *HackRF One*, make sure to install the [HackRF drivers](https://github.com/mossmann/hackrf) so that `/usr/bin/hackrf_transfer` exists.
+* Install `renard-phy`'s dependencies: [NumPy](https://www.numpy.org/), [SciPy](https://www.scipy.org/), [Scapy](https://scapy.net/) and [matplotlib](https://matplotlib.org/). If you wish to transmit frames with the *HackRF One*, make sure to install the [HackRF drivers](https://github.com/mossmann/hackrf) so that `/usr/bin/hackrf_transfer` exists.
 
 ## Usage
 ### Sample Recordings

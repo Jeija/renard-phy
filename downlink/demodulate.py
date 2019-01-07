@@ -7,6 +7,8 @@ import subprocess
 import argparse
 import sys
 import os
+# add support to write our frames to a pcap file
+from scapy.all import wrpcap, conf, Packet, StrField
 
 ###########################
 #    Parse CLI argumets   #
@@ -15,6 +17,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("wavfile", help="WAV file containing the downlink recording to be demodulated")
 parser.add_argument("-p", "--plot", action="store_true", default = False, help = "Use matplotlib to display the baseband signal and where in that baseband signal a preamble was detected")
 parser.add_argument("-d", "--decode", action="store_true", default = False, help = "Use renard to brute-force-decode payload content of downlink frame")
+parser.add_argument("-f", "--file", help = "Write frame contents to the specified PCAP file")
 args = parser.parse_args()
 
 ###########################
@@ -55,9 +58,17 @@ def nextpow2(limit):
 	return int(n / 2)
 
 ###########################
+# Wrapper Class for Scapy #
+###########################
+class SigfoxDownlinkPCAP(Packet):
+    name = "SigfoxPacket "
+    fields_desc = [StrField("Frame", "")]
+
+###########################
 #     Recording Input     #
 ###########################
 [Fs, IQ] = scipy.io.wavfile.read(args.wavfile)
+wavfile_mtime = os.path.getmtime(args.wavfile)
 
 # IQ offset / imbalance correction
 I_nooffset = IQ[:, 0] - sum(IQ[:, 0]) / len(IQ[:, 0])
@@ -101,7 +112,7 @@ demod = [demod[int(i * Fs / DEMOD_SAMPRATE)] for i in range(int(len(demod) * DEM
 print("Finding preamble...")
 samples_per_symbol = DEMOD_SAMPRATE / DOWNLINK_BAUDRATE
 preamble = [s for s in DOWNLINK_PREAMBLE for _ in range(int(samples_per_symbol))]
-xcorr = scipy.signal.correlate(demod, preamble, mode="valid")
+xcorr = scipy.signal.correlate(demod, preamble, mode = "valid")
 preamble_offset = np.argmax(xcorr)
 
 ############################
@@ -131,6 +142,15 @@ for i in (np.arange(0, FRAMELENGTH) * samples_per_symbol + first_sample_offset):
 hexstring = str(hex(int(bits, 2)))
 hexstring_without_preamble = hexstring[int(2 + len(DOWNLINK_PREAMBLE) / 4):]
 print("Frame: " + hexstring_without_preamble)
+
+if args.file:
+	print("Writing frame to PCAP file: " + args.file)
+	pkt = SigfoxDownlinkPCAP()
+	pkt.Frame = hexstring_without_preamble
+	pkt.time = wavfile_mtime + preamble_offset / Fs
+	# use linktype 147 which is reserved for private use
+	wrpcap(args.file, pkt, append = True, linktype = 147)
+
 if args.decode:
 	try:
 		print(subprocess.check_output(RENARD_CMD + ["-f", hexstring_without_preamble, "-c"], stderr = subprocess.STDOUT).decode('utf-8'))

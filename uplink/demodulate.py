@@ -6,7 +6,9 @@ import subprocess
 import argparse
 import sys
 import os
-
+# add support to write our frames to a pcap file
+from scapy.all import wrpcap, conf, Packet, StrField
+ 
 ###########################
 #    Parse CLI argumets   #
 ###########################
@@ -14,6 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("wavfile", help="WAV file containing the uplink recording to be demodulated")
 parser.add_argument("-p", "--plot", action="store_true", default = False, help = "Use matplotlib to display the baseband signal and where in that baseband signal a preamble was detected")
 parser.add_argument("-d", "--decode", action="store_true", default = False, help = "Use renard to decode content of uplink frame")
+parser.add_argument("-f", "--file", help = "Write frame contents to the specified PCAP file")
 args = parser.parse_args()
 
 ###########################
@@ -64,6 +67,14 @@ def nextpow2(limit):
 		n = n * 2
 	return int(n / 2)
 
+###########################
+# Wrapper Class for Scapy #
+###########################
+class SigfoxUplinkPCAP(Packet):
+    name = "SigfoxPacket "
+    fields_desc = [StrField("Frame", "")]
+
+
 # frequencyAdjustmentFactor:
 # Proportion by which the "VCO" frequency will be adjusted from given frequency offset estimate in
 # "share of frequency offset corrected per second"
@@ -102,6 +113,7 @@ class CostasLoop(object):
 #     Recording Input     #
 ###########################
 [Fs, IQ] = scipy.io.wavfile.read(args.wavfile)
+wavfile_mtime = os.path.getmtime(args.wavfile)
 
 # IQ offset / imbalance correction
 I_nooffset = IQ[:, 0] - sum(IQ[:, 0]) / len(IQ[:, 0])
@@ -219,6 +231,7 @@ for count, preamble_offset in enumerate(preamble_offsets):
 	nibblecount = int((FTYPE_LEN_BITS + packetlen * 8 + CRCLEN_BITS) / 4)
 	hexstring = ("{:0" + str(nibblecount) + "x}").format(int(frame_without_preamble, 2))
 	print("[Frame " + str(count) + "]: Content: "  + hexstring)
+
 	if args.decode:
 		print("[Frame " + str(count) + "]: Decoding with renard:")
 		try:
@@ -227,3 +240,12 @@ for count, preamble_offset in enumerate(preamble_offsets):
 			print(RENARD_BIN + " subprocess failed. Error:")
 			print(e.output.decode("UTF-8"))
 			sys.exit(0)
+
+	if args.file:
+		print("[Frame " + str(count) + "]: Writing to PCAP file: " + args.file)
+		pkt = SigfoxUplinkPCAP()
+		pkt.Frame = hexstring
+		pkt.time = wavfile_mtime + data_offset / Fs
+		# use linktype 147 which is reserved for private use
+		wrpcap(args.file, pkt, append = True, linktype = 147)
+
